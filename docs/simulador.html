@@ -251,6 +251,7 @@ textarea{width:100%;min-height:90px;font-family:ui-monospace,Menlo,Consolas,mono
     <input id="csvFile" type="file" accept=".csv,text/csv" class="hidden">
     <p class="sub" id="csvInfo"></p>
     <div class="fields" id="csvFiltros" style="margin-top:8px">
+      <label class="f">Estado<select id="fUf"><option value="">Todos</option></select></label>
       <label class="f">Cidade<select id="fCidade"><option value="">Todas</option></select></label>
       <label class="f">Bairro ou palavra<input id="fBusca" type="text" placeholder="ex.: Pituba, apartamento"></label>
       <label class="f">Modalidade<select id="fModal"><option value="">Todas</option></select></label>
@@ -950,7 +951,7 @@ function lerCsvCaixa(txt){
     const descr=r[c.descr]||"";
     const ap=descr.match(/([\d.,]+)\s*de\s*[aá]rea\s*privativa/i)||descr.match(/([\d.,]+)\s*de\s*[aá]rea\s*total/i)||descr.match(/([\d.,]+)\s*de\s*[aá]rea\s*do\s*terreno/i);
     const q=descr.match(/(\d+)\s*qto/i);
-    return {num:r[c.num]||"",uf:r[c.uf]||"",cidade:(r[c.cid]||"").trim(),bairro:(r[c.bai]||"").trim(),endereco:r[c.end]||"",preco:num(r[c.preco]),aval:num(r[c.aval]),
+    return {num:(r[c.num]||"").trim(),uf:(r[c.uf]||"").trim(),cidade:(r[c.cid]||"").trim(),bairro:(r[c.bai]||"").trim(),endereco:r[c.end]||"",preco:num(r[c.preco]),aval:num(r[c.aval]),
       desc:num(r[c.desc]),descr,modal:r[c.modal]||"",link:r[c.link]||"",area:ap? Number(ap[1].replace(",", ".")):0,quartos:q? Number(q[1]):0,
       tipo:(descr.split(",")[0]||"imóvel").toLowerCase()};
   }).filter(x=>x.preco>0);
@@ -964,19 +965,28 @@ $("btnOnline").addEventListener("click",async()=>{ const uf=$("ufOnline").value;
     await carregarTexto(decodificar(await r.arrayBuffer()), `lista da Caixa de ${uf}`);
     try{ const st=await (await fetch(LISTAS+"status.json",{cache:"no-store"})).json(); const e=st.estados&&st.estados[uf]; $("onlineInfo").textContent= e&&e.data_da_lista? `Lista de ${uf} gerada pela Caixa em ${e.data_da_lista}.` : `Lista de ${uf} carregada.`; }catch(e){ $("onlineInfo").textContent=`Lista de ${uf} carregada.`; }
   }catch(e){ $("onlineInfo").textContent="Não foi possível buscar agora. Nesta página de demonstração a busca automática é bloqueada; no simulador baixado ela funciona. Você também pode arrastar o arquivo da Caixa."; } });
+function preencherCidades(){
+  const uf=$("fUf").value;
+  const cids=[...new Set(lista.filter(x=>!uf||x.uf===uf).map(x=>x.cidade))].sort((a,b)=>a.localeCompare(b,"pt"));
+  const atual=$("fCidade").value;
+  $("fCidade").innerHTML=`<option value="">Todas (${cids.length})</option>`+cids.map(c=>`<option>${esc(c)}</option>`).join("");
+  if(cids.includes(atual)) $("fCidade").value=atual;
+}
 async function carregarTexto(txt, nome){ const file={name:nome};
   try{ lista=lerCsvCaixa(txt); }
   catch(e){ lista=[]; $("csvInfo").textContent="Não reconheci o formato. Use a lista de imóveis baixada do site da Caixa."; renderLista(); return; }
-  const cids=[...new Set(lista.map(x=>x.cidade))].sort((a,b)=>a.localeCompare(b,"pt"));
+  const ufs=[...new Set(lista.map(x=>x.uf).filter(Boolean))].sort();
   const mods=[...new Set(lista.map(x=>x.modal).filter(Boolean))].sort();
-  $("fCidade").innerHTML=`<option value="">Todas (${cids.length})</option>`+cids.map(c=>`<option>${esc(c)}</option>`).join("");
+  $("fUf").innerHTML=`<option value="">Todos${ufs.length>1?" ("+ufs.length+")":""}</option>`+ufs.map(u=>`<option>${esc(u)}</option>`).join("");
+  if(ufs.length===1) $("fUf").value=ufs[0];
+  preencherCidades();
   $("fModal").innerHTML=`<option value="">Todas</option>`+mods.map(c=>`<option>${esc(c)}</option>`).join("");
   $("csvInfo").textContent=`${lista.length} imóveis carregados de ${file.name}.`; renderLista();
 }
 function renderLista(){
   if(!lista.length){ $("csvLista").innerHTML=`<p class="sub">Nenhuma lista carregada ainda.</p>`; return; }
-  const cid=$("fCidade").value, b=$("fBusca").value.trim().toLowerCase(), mo=$("fModal").value, mx=Number($("fMax").value)||0, ord=$("fOrdem").value;
-  let r=lista.filter(x=>(!cid||x.cidade===cid)&&(!mo||x.modal===mo)&&(!mx||x.preco<=mx)&&(!b||(x.bairro+" "+x.descr+" "+x.endereco).toLowerCase().includes(b)));
+  const uf=$("fUf").value, cid=$("fCidade").value, b=$("fBusca").value.trim().toLowerCase(), mo=$("fModal").value, mx=Number($("fMax").value)||0, ord=$("fOrdem").value;
+  let r=lista.filter(x=>(!uf||x.uf===uf)&&(!cid||x.cidade===cid)&&(!mo||x.modal===mo)&&(!mx||x.preco<=mx)&&(!b||(x.bairro+" "+x.descr+" "+x.endereco).toLowerCase().includes(b)));
   r.sort((a,c)=> ord==="preco"? a.preco-c.preco : ord==="ganho"? (c.aval-c.preco)-(a.aval-a.preco) : c.desc-a.desc);
   const total=r.length; r=r.slice(0,150);
   $("csvLista").innerHTML=`<p class="sub">${total} imóvel(is) encontrados${total>150?" · mostrando os 150 primeiros":""}</p>`+r.map((x,i)=>`<div class="lote"><div>
@@ -986,6 +996,7 @@ function renderLista(){
     ${x.link?`<div class="d"><a href="${esc(x.link)}" target="_blank" rel="noopener">Ver no site da Caixa (nº ${esc(x.num)})</a></div>`:""}
   </div><button class="primary" data-sim="${lista.indexOf(x)}">Simular</button></div>`).join("");
 }
+$("fUf").addEventListener("change",()=>{ preencherCidades(); renderLista(); });
 ["fCidade","fModal","fOrdem"].forEach(id=>$(id).addEventListener("change",renderLista));
 ["fBusca","fMax"].forEach(id=>$(id).addEventListener("input",renderLista));
 $("csvFile").addEventListener("change",e=>{ const f=e.target.files[0]; if(f) carregarCsv(f); e.target.value=""; });
