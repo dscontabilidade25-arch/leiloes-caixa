@@ -2,7 +2,7 @@
 Não acessa o site da Caixa: só padroniza os arquivos que a DS Contabilidade baixou no navegador."""
 import json, pathlib, re, datetime
 d = pathlib.Path("docs")
-status = {"atualizado": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"), "estados": {}}
+status = {"atualizado": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "estados": {}}
 for f in sorted(d.glob("*.[cC][sS][vV]")):
     raw = f.read_bytes()
     try:
