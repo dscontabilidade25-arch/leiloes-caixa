@@ -255,6 +255,7 @@ textarea{width:100%;min-height:90px;font-family:ui-monospace,Menlo,Consolas,mono
       <label class="f">Cidade<select id="fCidade"><option value="">Todas</option></select></label>
       <label class="f">Bairro ou palavra<input id="fBusca" type="text" placeholder="ex.: Pituba, apartamento"></label>
       <label class="f">Modalidade<select id="fModal"><option value="">Todas</option></select></label>
+      <label class="f">Financiamento<select id="fFin"><option value="">Todos</option><option value="sim">Aceita financiamento</option><option value="nao">Só à vista</option></select></label>
       <label class="f">Preço máximo (R$)<input id="fMax" type="number" min="0" step="10000"></label>
       <label class="f">Ordenar por<select id="fOrdem"><option value="desc">Maior desconto</option><option value="preco">Menor preço</option><option value="ganho">Maior diferença para a avaliação</option></select></label>
     </div>
@@ -945,7 +946,7 @@ function lerCsvCaixa(txt){
   const split=l=>{ const out=[]; let cur="",q=false; for(const ch of l){ if(ch==='"'){q=!q;continue;} if(ch===sep&&!q){out.push(cur.trim());cur="";} else cur+=ch; } out.push(cur.trim()); return out; };
   const H=split(linhas[hi]).map(h=>h.toLowerCase());
   const col=re=>H.findIndex(h=>re.test(h));
-  const c={num:col(/im[oó]vel|n[°º]/),uf:col(/^uf$/),cid:col(/cidade/),bai:col(/bairro/),end:col(/endere/),preco:col(/pre[cç]o/),aval:col(/avalia/),desc:col(/desconto/),descr:col(/descri/),modal:col(/modalidade/),link:col(/link/)};
+  const c={num:col(/im[oó]vel|n[°º]/),uf:col(/^uf$/),cid:col(/cidade/),bai:col(/bairro/),end:col(/endere/),preco:col(/pre[cç]o/),aval:col(/avalia/),desc:col(/desconto/),fin:col(/financ/),descr:col(/descri/),modal:col(/modalidade/),link:col(/link/)};
   const num=v=>{ v=String(v||"").replace(/[^\d,.]/g,""); if(!v) return 0; return v.includes(",")? nBR(v) : Number(v)||0; };
   return linhas.slice(hi+1).map(split).filter(r=>r.length>3).map(r=>{
     const descr=r[c.descr]||"";
@@ -953,6 +954,7 @@ function lerCsvCaixa(txt){
     const q=descr.match(/(\d+)\s*qto/i);
     return {num:(r[c.num]||"").trim(),uf:(r[c.uf]||"").trim(),cidade:(r[c.cid]||"").trim(),bairro:(r[c.bai]||"").trim(),endereco:r[c.end]||"",preco:num(r[c.preco]),aval:num(r[c.aval]),
       desc:num(r[c.desc]),descr,modal:r[c.modal]||"",link:r[c.link]||"",area:ap? Number(ap[1].replace(",", ".")):0,quartos:q? Number(q[1]):0,
+      financia:(c.fin>=0?(r[c.fin]||"").trim():""), financiavel:/sim/i.test(c.fin>=0?(r[c.fin]||""):""),
       tipo:(descr.split(",")[0]||"imóvel").toLowerCase()};
   }).filter(x=>x.preco>0);
 }
@@ -985,19 +987,20 @@ async function carregarTexto(txt, nome){ const file={name:nome};
 }
 function renderLista(){
   if(!lista.length){ $("csvLista").innerHTML=`<p class="sub">Nenhuma lista carregada ainda.</p>`; return; }
-  const uf=$("fUf").value, cid=$("fCidade").value, b=$("fBusca").value.trim().toLowerCase(), mo=$("fModal").value, mx=Number($("fMax").value)||0, ord=$("fOrdem").value;
-  let r=lista.filter(x=>(!uf||x.uf===uf)&&(!cid||x.cidade===cid)&&(!mo||x.modal===mo)&&(!mx||x.preco<=mx)&&(!b||(x.bairro+" "+x.descr+" "+x.endereco).toLowerCase().includes(b)));
+  const uf=$("fUf").value, cid=$("fCidade").value, b=$("fBusca").value.trim().toLowerCase(), mo=$("fModal").value, ff=$("fFin").value, mx=Number($("fMax").value)||0, ord=$("fOrdem").value;
+  let r=lista.filter(x=>(!uf||x.uf===uf)&&(!cid||x.cidade===cid)&&(!mo||x.modal===mo)&&(!ff||(ff==="sim"?x.financiavel:!x.financiavel))&&(!mx||x.preco<=mx)&&(!b||(x.bairro+" "+x.descr+" "+x.endereco).toLowerCase().includes(b)));
   r.sort((a,c)=> ord==="preco"? a.preco-c.preco : ord==="ganho"? (c.aval-c.preco)-(a.aval-a.preco) : c.desc-a.desc);
   const total=r.length; r=r.slice(0,150);
   $("csvLista").innerHTML=`<p class="sub">${total} imóvel(is) encontrados${total>150?" · mostrando os 150 primeiros":""}</p>`+r.map((x,i)=>`<div class="lote"><div>
     <div class="t">${esc(x.tipo)} · ${esc(x.bairro)}, ${esc(x.cidade)}-${esc(x.uf)} <span class="desc-pill">${x.desc? x.desc.toLocaleString("pt-BR")+"% abaixo":"sem desconto"}</span></div>
     <div class="d">${esc(x.endereco)}</div>
     <div class="d">Preço ${brl0(x.preco)} · avaliação ${brl0(x.aval)}${x.area?` · ${x.area.toLocaleString("pt-BR")} m²`:""}${x.quartos?` · ${x.quartos} quarto(s)`:""} · ${esc(x.modal)}</div>
+    <div class="d"><span class="pill ${x.financiavel?"p-sim":"p-nao"}">${x.financiavel?"Aceita financiamento":"Só à vista"}</span>${x.financiavel?' · pode usar FGTS/financiamento Caixa, confira no edital':''}</div>
     ${x.link?`<div class="d"><a href="${esc(x.link)}" target="_blank" rel="noopener">Ver no site da Caixa (nº ${esc(x.num)})</a></div>`:""}
   </div><button class="primary" data-sim="${lista.indexOf(x)}">Simular</button></div>`).join("");
 }
 $("fUf").addEventListener("change",()=>{ preencherCidades(); renderLista(); });
-["fCidade","fModal","fOrdem"].forEach(id=>$(id).addEventListener("change",renderLista));
+["fCidade","fModal","fFin","fOrdem"].forEach(id=>$(id).addEventListener("change",renderLista));
 ["fBusca","fMax"].forEach(id=>$(id).addEventListener("input",renderLista));
 $("csvFile").addEventListener("change",e=>{ const f=e.target.files[0]; if(f) carregarCsv(f); e.target.value=""; });
 prepararDrop("csvDrop", carregarCsv);
