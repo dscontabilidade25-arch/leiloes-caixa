@@ -1,32 +1,9 @@
 {
-  "atualizado": "2026-11-15T13:42:01Z",
+  "atualizado": "2026-11-15T13:54:01Z",
   "estados": {
-    "AC": {"linhas": 21, "atualizada_hoje": false},
-    "AL": {"linhas": 0, "atualizada_hoje": false},
-    "AP": {"linhas": 0, "atualizada_hoje": false},
-    "AM": {"linhas": 0, "atualizada_hoje": false},
-    "BA": {"linhas": 0, "atualizada_hoje": false},
-    "CE": {"linhas": 0, "atualizada_hoje": false},
-    "DF": {"linhas": 0, "atualizada_hoje": false},
-    "ES": {"linhas": 0, "atualizada_hoje": false},
-    "GO": {"linhas": 0, "atualizada_hoje": false},
-    "MA": {"linhas": 0, "atualizada_hoje": false},
-    "MT": {"linhas": 0, "atualizada_hoje": false},
-    "MS": {"linhas": 0, "atualizada_hoje": false},
-    "MG": {"linhas": 0, "atualizada_hoje": false},
-    "PA": {"linhas": 0, "atualizada_hoje": false},
-    "PB": {"linhas": 0, "atualizada_hoje": false},
-    "PR": {"linhas": 0, "atualizada_hoje": false},
-    "PE": {"linhas": 0, "atualizada_hoje": false},
-    "PI": {"linhas": 0, "atualizada_hoje": false},
-    "RJ": {"linhas": 0, "atualizada_hoje": false},
-    "RN": {"linhas": 0, "atualizada_hoje": false},
-    "RS": {"linhas": 0, "atualizada_hoje": false},
-    "RO": {"linhas": 0, "atualizada_hoje": false},
-    "RR": {"linhas": 0, "atualizada_hoje": false},
-    "SC": {"linhas": 0, "atualizada_hoje": false},
-    "SP": {"linhas": 0, "atualizada_hoje": false},
-    "SE": {"linhas": 0, "atualizada_hoje": false},
-    "TO": {"linhas": 0, "atualizada_hoje": false}
+    "AC": {
+      "imoveis": 19,
+      "data_da_lista": "13/11/2026"
+    }
   }
 }
