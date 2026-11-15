@@ -1,9 +1,25 @@
 {
-  "atualizado": "2026-11-15T13:54:01Z",
+  "atualizado": "2026-11-15T14:16:25Z",
   "estados": {
+    "SP": {
+      "imoveis": 3316,
+      "data_da_lista": ""
+    },
+    "RJ": {
+      "imoveis": 8119,
+      "data_da_lista": ""
+    },
+    "MG": {
+      "imoveis": 856,
+      "data_da_lista": ""
+    },
+    "BA": {
+      "imoveis": 778,
+      "data_da_lista": ""
+    },
     "AC": {
-      "imoveis": 19,
-      "data_da_lista": "13/11/2026"
+      "imoveis": 21,
+      "data_da_lista": ""
     }
   }
 }
