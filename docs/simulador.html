@@ -956,7 +956,7 @@ function lerCsvCaixa(txt){
   }).filter(x=>x.preco>0);
 }
 async function carregarCsv(file){ return carregarTexto(decodificar(await file.arrayBuffer()), file.name); }
-const LISTAS="https://souzadeivide4-cmd.github.io/leiloes-caixa/";
+const LISTAS=(location.protocol.startsWith("http")&&location.hostname.endsWith("github.io"))?location.href.replace(/[^/]*$/,"").replace(/#.*$/,""):"https://dscontabilidade25-arch.github.io/leiloes-caixa/";
 $("btnOnline").addEventListener("click",async()=>{ const uf=$("ufOnline").value; $("onlineInfo").textContent=`Buscando a lista de ${uf}…`;
   try{ const r=await fetch(`${LISTAS}Lista_imoveis_${uf}.csv`,{cache:"no-store"});
     if(r.status===404){ $("onlineInfo").textContent=`A lista de ${uf} ainda não foi publicada pela DS Contabilidade. Arraste o arquivo baixado do site da Caixa.`; return; }
