@@ -287,6 +287,7 @@ textarea{width:100%;min-height:90px;font-family:ui-monospace,Menlo,Consolas,mono
     <div class="fields">
       <label class="f">Inscrição imobiliária (IPTU)<input id="mInscricao" type="text"></label>
       <label class="f">Matrícula no cartório<input id="mMatricula" type="text"></label>
+      <label class="f">CEP (preenche o endereço)<input id="mCep" type="text" inputmode="numeric" maxlength="9" placeholder="00000-000"></label>
       <label class="f">Endereço<input id="mEndereco" type="text"></label>
       <label class="f">Bairro<input id="mBairro" type="text"></label>
       <label class="f">Cidade<input id="mCidade" type="text"></label>
@@ -295,7 +296,7 @@ textarea{width:100%;min-height:90px;font-family:ui-monospace,Menlo,Consolas,mono
       <label class="f">Área privativa (m²)<input id="mArea" type="number" min="0" step="1"></label>
       <label class="f">Quartos<input id="mQuartos" type="number" min="0" step="1"></label>
     </div>
-    <div class="row" style="margin-top:10px"><button id="btnCopiarImovel">Copiar dados do imóvel</button></div>
+    <div class="row" style="margin-top:10px"><button id="btnCopiarImovel">Copiar dados do imóvel</button><span class="sub" id="cepInfo"></span></div>
   </div>
 
   <div class="card">
@@ -749,7 +750,7 @@ function syncToggles(){ $("parcBox").classList.toggle("hidden",!im().venda.parce
 
 
 /* ===================== PESQUISA DE MERCADO ===================== */
-function novoMercado(){ return {inscricao:"",matricula:"",endereco:"",bairro:"",cidade:"",uf:"",tipo:"apartamento",area:0,quartos:0,venal:0,refItbi:0,desc:7,comps:[],debitos:[]}; }
+function novoMercado(){ return {cep:"",inscricao:"",matricula:"",endereco:"",bairro:"",cidade:"",uf:"",tipo:"apartamento",area:0,quartos:0,venal:0,refItbi:0,desc:7,comps:[],debitos:[]}; }
 const mk=()=>{ const x=im(); x.mercado ||= novoMercado(); return x.mercado; };
 const gq=q=>"https://www.google.com/search?q="+encodeURIComponent(q);
 function parseNum(t){ t=String(t||"").replace(/[^\d,.]/g,""); if(!t) return 0;
@@ -768,7 +769,7 @@ function analisarMercado(m){
 function renderMercado(){
   const m=mk();
   const set=(id,v)=>{ const el=$(id); if(el && document.activeElement!==el) el.value=v??""; };
-  set("mInscricao",m.inscricao); set("mMatricula",m.matricula); set("mEndereco",m.endereco); set("mBairro",m.bairro); set("mCidade",m.cidade); set("mUf",m.uf);
+  set("mCep",m.cep); set("mInscricao",m.inscricao); set("mMatricula",m.matricula); set("mEndereco",m.endereco); set("mBairro",m.bairro); set("mCidade",m.cidade); set("mUf",m.uf);
   set("mTipo",m.tipo); set("mArea",m.area||""); set("mQuartos",m.quartos||""); set("mVenal",m.venal||""); set("mRefItbi",m.refItbi||""); set("mDesc",m.desc);
   renderLinks(); renderDebitos(); renderComps(); renderMercadoRes();
 }
@@ -840,7 +841,21 @@ function renderMercadoRes(){
   $("mAlerts").innerHTML=al.map(t=>`<div class="alert ${t[0]}">${esc(t[1])}</div>`).join("");
 }
 function onMercado(){ salvar(); renderMercadoRes(); renderResultado(); renderCmpTable(); renderGcap(); }
-const mMap={mInscricao:"inscricao",mMatricula:"matricula",mEndereco:"endereco",mBairro:"bairro",mCidade:"cidade",mUf:"uf",mTipo:"tipo",mArea:"area",mQuartos:"quartos",mVenal:"venal",mRefItbi:"refItbi",mDesc:"desc"};
+const mMap={mCep:"cep",mInscricao:"inscricao",mMatricula:"matricula",mEndereco:"endereco",mBairro:"bairro",mCidade:"cidade",mUf:"uf",mTipo:"tipo",mArea:"area",mQuartos:"quartos",mVenal:"venal",mRefItbi:"refItbi",mDesc:"desc"};
+// CEP -> endereço, usando ViaCEP e BrasilAPI (gratuitas, sem servidor nem chave)
+async function buscarCep(){
+  const m=mk(); const cep=(m.cep||"").replace(/\D/g,"");
+  if(cep.length!==8){ $("cepInfo").textContent=""; return; }
+  $("cepInfo").textContent="Buscando endereço…";
+  const fontes=[
+    async()=>{ const d=await (await fetch(`https://viacep.com.br/ws/${cep}/json/`,{cache:"force-cache"})).json(); if(d.erro) throw 0; return {endereco:d.logradouro,bairro:d.bairro,cidade:d.localidade,uf:d.uf}; },
+    async()=>{ const d=await (await fetch(`https://brasilapi.com.br/api/cep/v1/${cep}`,{cache:"force-cache"})).json(); return {endereco:d.street,bairro:d.neighborhood,cidade:d.city,uf:d.state}; },
+  ];
+  for(const f of fontes){ try{ const r=await f(); if(r.cidade){ m.endereco=r.endereco||m.endereco; m.bairro=r.bairro||m.bairro; m.cidade=r.cidade; m.uf=r.uf;
+    $("cepInfo").textContent=`Endereço preenchido: ${r.cidade}-${r.uf}. Confira o número.`; renderMercado(); onMercado(); return; } }catch(e){} }
+  $("cepInfo").textContent="Não encontrei este CEP. No simulador online a busca é bloqueada por segurança; no simulador baixado ou publicado ela funciona. Preencha à mão.";
+}
+let cepT; $("mCep").addEventListener("input",()=>{ clearTimeout(cepT); cepT=setTimeout(buscarCep,500); });
 const mNum=new Set(["area","quartos","venal","refItbi","desc"]);
 for(const id in mMap) $(id).addEventListener("input",e=>{ const k=mMap[id]; mk()[k]= mNum.has(k)? (Number(e.target.value)||0) : (k==="uf"? e.target.value.toUpperCase() : e.target.value); renderLinks(); if(k==="area") renderComps(); onMercado(); });
 $("debRows").addEventListener("input",e=>{ const tr=e.target.closest("tr"), k=e.target.dataset.k; if(!tr||!k) return; const d=mk().debitos.find(d=>d.id===tr.dataset.id);
